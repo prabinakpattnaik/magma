@@ -523,15 +523,17 @@ class EnforcementStatsController(PolicyMixin, RestartMixin, MagmaController):
 
         match_in = _generate_rule_match(imsi, ip_addr, 0, 0, Direction.IN)
         match_out = _generate_rule_match(imsi, ip_addr, 0, 0, Direction.OUT)
-
         flows.delete_flow(self._datapath, self.tbl_num, match_in)
         flows.delete_flow(self._datapath, self.tbl_num, match_out)
 
     def deactivate_ng_default_flow(self, imsi, ip_addr, ng_session_id, remove_default_flow):
-        if remove_default_flow == True:
-            ng_match_in = _generate_rule_match(imsi, ip_addr, 0, 0, Direction.OUT, ng_session_id)
-            ng_match_out = _generate_rule_match(imsi, ip_addr, 0, 0, Direction.IN, ng_session_id)
+        if self._datapath is None:
+            self.logger.error('Datapath not initialized')
+            return
 
+        if remove_default_flow == True:
+            ng_match_in = _generate_rule_match(imsi, ip_addr, 0, 0, Direction.IN, ng_session_id)
+            ng_match_out = _generate_rule_match(imsi, ip_addr, 0, 0, Direction.OUT, ng_session_id)
             flows.delete_flow(self._datapath, self.tbl_num, ng_match_in)
             flows.delete_flow(self._datapath, self.tbl_num, ng_match_out)
         else:
@@ -769,8 +771,8 @@ class EnforcementStatsController(PolicyMixin, RestartMixin, MagmaController):
                                                              local_f_teid=ng_session_id)})
 
         #Send Session messages
-        #SessionStateManager.report_session_config_state(session_config_dict,
-        #                                                self.ng_config.sessiond_setinterface)
+        SessionStateManager.report_session_config_state(session_config_dict,
+                                                        self.ng_config.sessiond_setinterface)
 
 def _generate_rule_match(imsi, ip_addr, rule_num, version, direction, ng_session_id=0):
     """
