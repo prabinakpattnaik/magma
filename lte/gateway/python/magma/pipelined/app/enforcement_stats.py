@@ -30,7 +30,7 @@ from magma.pipelined.openflow.magma_match import MagmaMatch
 from magma.pipelined.openflow.messages import MessageHub, MsgChannel
 from magma.pipelined.openflow.registers import (DIRECTION_REG, IMSI_REG,
                                                 RULE_VERSION_REG, SCRATCH_REGS,
-                                                NG_FLOW_ENABLE_REG, REG_ZERO_VAL,
+                                                NG_SESSION_ID_REG, REG_ZERO_VAL,
                                                 Direction)
 from magma.pipelined.policy_converters import (get_eth_type,
                                                get_ue_ip_match_args,
