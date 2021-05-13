@@ -44,8 +44,6 @@ from ryu.ofproto.ofproto_v1_4 import OFPMPF_REPLY_MORE
 import ryu.app.ofctl.api as ofctl_api
 from ryu.app.ofctl.exception import (InvalidDatapath, OFError, UnexpectedMultiReply)
 
-#from ryu.ofproto.ofproto_v1_4_parser import OFPFlowStats
-#from ryu.ofproto import nicira_ext
 from magma.pipelined.ng_manager.session_state_manager import SessionStateManager
 from lte.protos.session_manager_pb2 import (
      UPFSessionState)
@@ -111,7 +109,7 @@ class EnforcementStatsController(PolicyMixin, RestartMixin, MagmaController):
         self.ng_config=self._get_ng_config(kwargs['config'], kwargs['rpc_stubs'])
 
     def _get_ng_config(self, config_dict, rpc_stub_dict):
-        ng_service_enabled=False
+        ng_service_enabled = False
         ng_flag = config_dict.get('5G_feature_set', None)
         if ng_flag:
             ng_service_enabled = ng_flag['enable']
@@ -226,18 +224,12 @@ class EnforcementStatsController(PolicyMixin, RestartMixin, MagmaController):
         self.logger.debug(
             'Installing flow for %s with rule num %s (version %s)', imsi,
             rule_num, version)
-        if ng_session_id:
-            inbound_rule_match = _generate_rule_match(imsi, ip_addr, rule_num,
-                                                      version, Direction.IN,
-                                                      ng_session_id)
-            outbound_rule_match = _generate_rule_match(imsi, ip_addr, rule_num,
-                                                       version, Direction.OUT,
-                                                       ng_session_id)
-        else:
-            inbound_rule_match = _generate_rule_match(imsi, ip_addr, rule_num,
-                                                      version, Direction.IN)
-            outbound_rule_match = _generate_rule_match(imsi, ip_addr, rule_num,
-                                                       version, Direction.OUT)
+        inbound_rule_match = _generate_rule_match(imsi, ip_addr, rule_num,
+                                                  version, Direction.IN,
+                                                  ng_session_id)
+        outbound_rule_match = _generate_rule_match(imsi, ip_addr, rule_num,
+                                                   version, Direction.OUT,
+                                                   ng_session_id)
 
         flow_actions = [flow.action for flow in rule.flow_list]
         msgs = []
@@ -297,15 +289,10 @@ class EnforcementStatsController(PolicyMixin, RestartMixin, MagmaController):
 
 
     def _get_default_flow_msgs_for_subscriber(self, imsi, ip_addr, ng_session_id=0):
-        if ng_session_id:
-            match_in = _generate_rule_match(imsi, ip_addr, 0, 0,
-                                            Direction.IN, ng_session_id)
-            match_out = _generate_rule_match(imsi, ip_addr, 0, 0,
-                                             Direction.OUT, ng_session_id)
-        else:
-            match_in = _generate_rule_match(imsi, ip_addr, 0, 0, Direction.IN)
-            match_out = _generate_rule_match(imsi, ip_addr, 0, 0,
-                                              Direction.OUT)
+        match_in = _generate_rule_match(imsi, ip_addr, 0, 0,
+                                        Direction.IN, ng_session_id)
+        match_out = _generate_rule_match(imsi, ip_addr, 0, 0,
+                                         Direction.OUT, ng_session_id)
 
         return [
             flows.get_add_drop_flow_msg(self._datapath, self.tbl_num, match_in,
@@ -448,14 +435,10 @@ class EnforcementStatsController(PolicyMixin, RestartMixin, MagmaController):
             self.logger.error('Datapath not initialized')
             return
 
-        if ng_session_id:
-            match_in = _generate_rule_match(imsi, ip_addr, 0, 0,
-                                            Direction.IN, ng_session_id)
-            match_out = _generate_rule_match(imsi, ip_addr, 0, 0,
-                                             Direction.OUT, ng_session_id)
-        else:
-            match_in = _generate_rule_match(imsi, ip_addr, 0, 0, Direction.IN)
-            match_out = _generate_rule_match(imsi, ip_addr, 0, 0, Direction.OUT)
+        match_in = _generate_rule_match(imsi, ip_addr, 0, 0,
+                                        Direction.IN, ng_session_id)
+        match_out = _generate_rule_match(imsi, ip_addr, 0, 0,
+                                         Direction.OUT, ng_session_id)
 
         flows.delete_flow(self._datapath, self.tbl_num, match_in)
         flows.delete_flow(self._datapath, self.tbl_num, match_out)
@@ -664,7 +647,7 @@ class EnforcementStatsController(PolicyMixin, RestartMixin, MagmaController):
                 if stat.table_id != self.tbl_num:
                     return
 
-                ng_session_id = _get_ng_enable(stat)
+                ng_session_id = _get_ng_session_id(stat)
                 if not ng_session_id or  ng_session_id == REG_ZERO_VAL:
                     continue
                 #Already present
@@ -676,14 +659,6 @@ class EnforcementStatsController(PolicyMixin, RestartMixin, MagmaController):
                     continue
 
                 rule_version = _get_version(stat)
-                if rule_version == 0:
-                    #If its default subscriber entry get the Notes
-                    #if stat.instructions[0] and stat.instructions[0].actions[0]:
-                    #    if stat.instructions[0].actions[0].subtype == nicira_ext.NXAST_NOTE:
-                    #        rule_version = stat.instructions[0].actions[0].note[0]
-                    #else:
-                    continue
-
                 session_config_dict.update ({ng_session_id:
                                              UPFSessionState(subscriber_id=sid,
                                                              session_version=rule_version,
@@ -793,7 +768,7 @@ def get_adjusted_delta(begin, end):
     # Add on a bit of time to compensate for grpc
     return (end - begin + timedelta(milliseconds=150)).total_seconds()
 
-def _get_ng_enable(flow):
+def _get_ng_session_id(flow):
     if NG_SESSION_ID_REG not in flow.match:
         return None
     return flow.match[NG_SESSION_ID_REG]
